@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Weather</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-static@0.469.0/font/lucide.min.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+  <!-- Background pattern -->
+  <div class="bg-pattern" aria-hidden="true"></div>
+
+  <div class="app">
+
+    <!-- Header -->
+    <header class="header">
+      <div class="header-inner">
+        <div class="brand">
+          <i class="icon-cloud" aria-hidden="true"></i>
+          <span>weather</span>
+        </div>
+        <div class="header-actions">
+          <button class="btn-icon" id="geoBtn" title="Usar minha localização" aria-label="Usar minha localização">
+            <i class="icon-locate" aria-hidden="true"></i>
+          </button>
+          <button class="btn-icon active" id="toggleMapBtn" title="Alternar mapa" aria-label="Alternar mapa">
+            <i class="icon-map" aria-hidden="true"></i>
+          </button>
+          <button class="btn-icon" id="toggleHistory" title="Histórico" aria-label="Abrir histórico">
+            <i class="icon-clock-3" aria-hidden="true"></i>
+            <span class="badge hidden" id="historyBadge">0</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main -->
+    <main class="main">
+
+      <!-- Busca -->
+      <section class="search-section">
+        <div class="search-wrapper">
+          <div class="search-box" id="searchBox">
+            <i class="icon-search search-icon" aria-hidden="true"></i>
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="Buscar cidade..."
+              autocomplete="off"
+              spellcheck="false"
+              aria-label="Buscar cidade"
+            />
+            <button class="btn-clear hidden" id="clearBtn" aria-label="Limpar busca">
+              <i class="icon-x" aria-hidden="true"></i>
+            </button>
+          </div>
+          <button class="btn-search" id="searchBtn" aria-label="Buscar">
+            <i class="icon-arrow-right" aria-hidden="true"></i>
+          </button>
+        </div>
+        <p class="search-hint" id="searchHint"></p>
+      </section>
+
+      <!-- Mapa -->
+      <section class="map-section" id="mapSection" aria-label="Mapa do clima">
+        <div class="map-container">
+          <div id="map"></div>
+          <div class="map-overlay-bar">
+            <span class="map-label">
+              <i class="icon-map-pin" aria-hidden="true"></i>
+              <span id="mapLabelText">Arraste para explorar</span>
+            </span>
+            <button class="map-btn-locate" id="mapLocateBtn" title="Centralizar na minha localização" aria-label="Centralizar">
+              <i class="icon-crosshair" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+        <div class="map-legend">
+          <span class="legend-item">
+            <span class="legend-dot dot-world"></span>
+            Cidades mundiais
+          </span>
+          <span class="legend-item">
+            <span class="legend-dot dot-cached"></span>
+            Histórico
+          </span>
+          <span class="legend-item">
+            <span class="legend-dot dot-current"></span>
+            Resultado atual
+          </span>
+          <span class="legend-item">
+            <span class="legend-dot dot-geo"></span>
+            Sua localização
+          </span>
+        </div>
+      </section>
+
+      <!-- Card de clima -->
+      <section class="weather-section hidden" id="weatherSection" aria-live="polite">
+        <div class="weather-card" id="weatherCard">
+
+          <!-- Carregando -->
+          <div class="loading-state hidden" id="loadingState">
+            <div class="spinner"></div>
+            <p>Buscando dados climáticos...</p>
+          </div>
+
+          <!-- Erro -->
+          <div class="error-state hidden" id="errorState">
+            <i class="icon-circle-alert error-icon" aria-hidden="true"></i>
+            <p id="errorMessage">Algo deu errado.</p>
+            <button class="btn-retry" id="retryBtn">Tentar novamente</button>
+          </div>
+
+          <!-- Dados do clima -->
+          <div class="weather-data hidden" id="weatherData">
+            <div class="weather-header">
+              <div class="location-info">
+                <div class="city-name-row">
+                  <h1 class="city-name" id="cityName"></h1>
+                  <span class="country-badge" id="countryBadge"></span>
+                </div>
+                <p class="weather-description" id="weatherDesc"></p>
+              </div>
+              <div class="weather-header-right">
+                <div class="cache-indicator hidden" id="cacheIndicator" title="Carregado do cache">
+                  <i class="icon-database" aria-hidden="true"></i>
+                </div>
+                <button class="btn-center-map" id="centerMapBtn" title="Ver no mapa" aria-label="Centralizar mapa nesta cidade">
+                  <i class="icon-map-pin" aria-hidden="true"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="temp-display">
+              <span class="temp-value" id="tempValue"></span>
+              <span class="temp-unit">°C</span>
+            </div>
+
+            <div class="temp-range">
+              <span class="temp-range-item">
+                <i class="icon-arrow-up" aria-hidden="true"></i>
+                <span id="tempMax"></span>°
+              </span>
+              <span class="divider-dot"></span>
+              <span class="temp-range-item">
+                <i class="icon-arrow-down" aria-hidden="true"></i>
+                <span id="tempMin"></span>°
+              </span>
+              <span class="divider-dot"></span>
+              <span class="temp-range-item feels">
+                <span>Sensação</span>
+                <span id="feelsLike"></span>°
+              </span>
+            </div>
+
+            <div class="stats-grid">
+              <div class="stat-item">
+                <i class="icon-droplets" aria-hidden="true"></i>
+                <div class="stat-content">
+                  <span class="stat-label">Umidade</span>
+                  <span class="stat-value" id="humidity"></span>
+                </div>
+              </div>
+              <div class="stat-item">
+                <i class="icon-wind" aria-hidden="true"></i>
+                <div class="stat-content">
+                  <span class="stat-label">Vento</span>
+                  <span class="stat-value" id="wind"></span>
+                </div>
+              </div>
+              <div class="stat-item">
+                <i class="icon-gauge" aria-hidden="true"></i>
+                <div class="stat-content">
+                  <span class="stat-label">Pressão</span>
+                  <span class="stat-value" id="pressure"></span>
+                </div>
+              </div>
+              <div class="stat-item">
+                <i class="icon-eye" aria-hidden="true"></i>
+                <div class="stat-content">
+                  <span class="stat-label">Visibilidade</span>
+                  <span class="stat-value" id="visibility"></span>
+                </div>
+              </div>
+              <div class="stat-item">
+                <i class="icon-sunrise" aria-hidden="true"></i>
+                <div class="stat-content">
+                  <span class="stat-label">Nascer do sol</span>
+                  <span class="stat-value" id="sunrise"></span>
+                </div>
+              </div>
+              <div class="stat-item">
+                <i class="icon-sunset" aria-hidden="true"></i>
+                <div class="stat-content">
+                  <span class="stat-label">Pôr do sol</span>
+                  <span class="stat-value" id="sunset"></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="updated-at">
+              <i class="icon-refresh-cw" aria-hidden="true"></i>
+              <span id="updatedAt"></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Previsão -->
+      <section class="forecast-section hidden" id="forecastSection">
+        <!-- Filtros de período -->
+        <div class="forecast-tabs" role="tablist" aria-label="Período da previsão">
+          <button class="forecast-tab active" data-days="1" role="tab" aria-selected="true">Hoje</button>
+          <button class="forecast-tab" data-days="3" role="tab" aria-selected="false">3 dias</button>
+          <button class="forecast-tab" data-days="7" role="tab" aria-selected="false">7 dias</button>
+        </div>
+
+        <!-- Carregando previsão -->
+        <div class="forecast-loading hidden" id="forecastLoading">
+          <div class="spinner spinner-sm"></div>
+          <span>Carregando previsão...</span>
+        </div>
+
+        <!-- Erro previsão -->
+        <div class="forecast-error hidden" id="forecastError">
+          <i class="icon-cloud-off" aria-hidden="true"></i>
+          <span id="forecastErrorMsg">Não foi possível carregar a previsão.</span>
+        </div>
+
+        <!-- Lista de dias -->
+        <div class="forecast-list" id="forecastList"></div>
+      </section>
+
+      <!-- Estado vazio -->
+      <div class="empty-state" id="emptyState">
+        <i class="icon-cloud-sun empty-icon" aria-hidden="true"></i>
+        <p>Digite uma cidade ou use sua localização</p>
+      </div>
+
+    </main>
+
+    <!-- Histórico lateral -->
+    <aside class="history-drawer" id="historyDrawer" aria-label="Histórico de buscas" role="complementary">
+      <div class="drawer-header">
+        <h2 class="drawer-title">Histórico</h2>
+        <div class="drawer-actions">
+          <button class="btn-text btn-danger" id="clearHistoryBtn" title="Limpar histórico">
+            <i class="icon-trash-2" aria-hidden="true"></i>
+            Limpar
+          </button>
+          <button class="btn-icon" id="closeDrawer" aria-label="Fechar histórico">
+            <i class="icon-x" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="history-list" id="historyList" aria-live="polite"></div>
+
+      <div class="history-empty hidden" id="historyEmpty">
+        <i class="icon-clock-3" aria-hidden="true"></i>
+        <p>Nenhuma busca ainda</p>
+      </div>
+
+      <div class="pagination hidden" id="pagination">
+        <button class="btn-page" id="prevPage" aria-label="Página anterior" disabled>
+          <i class="icon-chevron-left" aria-hidden="true"></i>
+        </button>
+        <span class="page-info" id="pageInfo">1 / 1</span>
+        <button class="btn-page" id="nextPage" aria-label="Próxima página">
+          <i class="icon-chevron-right" aria-hidden="true"></i>
+        </button>
+      </div>
+    </aside>
+
+    <div class="overlay hidden" id="overlay"></div>
+  </div>
+
+  <script src="/js/map.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
